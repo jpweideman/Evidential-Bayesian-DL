@@ -17,22 +17,6 @@ CIFAR-10H dataset. Every evaluation can decompose the predictive uncertainty
 into aleatoric, distributional, and epistemic terms and dump per input arrays
 for offline analysis.
 
-## Features
-
-- One training script for deterministic, sampled, and evidential models.
-- Likelihoods for single labels (categorical, Dirichlet) and for count vectors
-(multinomial, Dirichlet multinomial).
-- Function space prior on the Dirichlet total concentration, with a bias shift
-that starts a warm started model at the prior mode.
-- Bayesian model average (BMA) metrics over posterior samples, calibration
-metrics, and an analytical decomposition of predictive uncertainty.
-- Datasets Fashion-MNIST, CIFAR-10, and CIFAR-10H, downloaded on first use.
-- Hydra configuration with a plugin registry. A new model, loss, prior,
-sampler, metric, or dataset is one module and one yaml entry.
-- An experiment runner for seeds, warm starts, and resumable experiment sets.
-- Checkpoints every epoch, resumable runs, and Weights and Biases logging.
-
-
 
 ## Installation
 
@@ -46,7 +30,6 @@ cd Evidential-Bayesian-DL
 ```
 
 
-
 ### 2. Install Poetry
 
 ```bash
@@ -56,12 +39,12 @@ wget -qO- https://install.python-poetry.org | python3 -
 ```
 
 
-
 ### 3. Ensure Poetry is on PATH
 
 If `poetry --version` fails with `command not found`, add Poetry's bin
 directory to your shell `PATH`, reload your shell configuration, and run
 `poetry --version` again.
+
 
 ### 4. Install Python 3.10 with pyenv
 
@@ -74,13 +57,11 @@ poetry env use "$(pyenv which python)"
 ```
 
 
-
 ### 5. Install the dependencies
 
 ```bash
 poetry install
 ```
-
 
 
 ### 6. Activate the virtual environment
