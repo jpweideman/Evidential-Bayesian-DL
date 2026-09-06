@@ -24,8 +24,6 @@ experiments:
     overrides:
       - training.prior_fs=null
 
-
-
   e2_c10h_sgd_mult_pretrain:
     config: cifar10h_multinomial_sgd
   e2_c10h_map_sgd_dm_mode50_pretrain:
@@ -34,11 +32,6 @@ experiments:
     config: cifar10h_dirichlet_multinomial_map_sgd
     overrides:
       - training.loss.params.rate=0.13
-  e2_c10h_map_sgd_dm_noprior_pretrain:
-    config: cifar10h_dirichlet_multinomial_map_sgd
-    overrides:
-      - training.loss.name=dirichlet_multinomial_count_nll
-      - training.loss.params=null
 
   e2_c10h_bnn_mult_warm:
     config: cifar10h_multinomial_bnn_sgld
