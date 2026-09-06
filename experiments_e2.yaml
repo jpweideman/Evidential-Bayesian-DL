@@ -1,13 +1,6 @@
 # Run: python run_experiments.py --file_name experiments_e2.yaml --runs 3
-# The warm arms start from their own MAP pretrain (SGD on each posterior's
-# negative log density) and sample 40 snapshots: epochs 220, 240, ..., 1000.
-# The _wide_ warm arms keep those default sd MAP starts and widen only the
-# sampling prior: concentration 2.618034 makes the Gamma sd equal its mode
-# (sd = 100% of the mode at both modes), against sd = 20% in the default arms.
-# The _noprior_ warm arms keep the MAP starts and drop the sampling prior
-# entirely, separating what the prior does at initialisation from what it does
-# during sampling.
-wandb_project: ebnn-thesis
+
+wandb_project: ebnn
 seed: 0
 
 experiments:

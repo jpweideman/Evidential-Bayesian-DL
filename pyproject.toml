@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bnn-edl"
+name = "evidential-bayesian-dl"
 version = "0.1.0"
 description = "Evidential Bayesian Neural Networks"
 authors = ["John-Pierre Weideman <johnpierrew@gmail.com>"]

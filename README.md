@@ -1,98 +1,51 @@
-# Bayesian Neural Networks for Classification
+# Evidential-Bayesian-DL
 
-Uncertainty quantification for image classification: Bayesian neural networks sampled with MCMC via [posteriors](https://github.com/normal-computing/posteriors), Evidential Deep Learning via [edl-pytorch](https://github.com/teddykoker/evidential-learning-pytorch), and the combination of the two — a Dirichlet head sampled with SGLD under a function-space prior on the total concentration.
+A PyTorch framework for uncertainty aware image classification. It trains and
+evaluates three families of models under one configuration system.
 
-Every component is registered by name in `src/registry.py` and selected from a Hydra config, so adding one means dropping a module in the matching `src/` folder and naming it in a yaml.
+- **Deterministic networks.** A softmax network trained with cross entropy, and
+an evidential deep learning (EDL) network with a Dirichlet output layer.
+- **Bayesian neural networks (BNN).** Weight posteriors sampled with SGMCMC, built on [posteriors](https://github.com/normal-computing/posteriors).
+- **Evidential Bayesian neural networks (eBNN).** A Dirichlet output layer
+sampled with SGMCMC under a Gamma prior on the total concentration. The model
+combines the epistemic uncertainty of a BNN with the distributional
+uncertainty of EDL.
 
-## What is implemented
+The framework supports single label targets and annotator count targets. For
+counts it provides multinomial and Dirichlet multinomial likelihoods and the
+CIFAR-10H dataset. Every evaluation can decompose the predictive uncertainty
+into aleatoric, distributional, and epistemic terms and dump per input arrays
+for offline analysis.
 
-| | |
-|---|---|
-| Architectures | `mlp`, `resnet20` (filter response norm) |
-| Output layers | `linear` (softmax logits), `dirichlet` (evidential concentrations) |
-| Optimizers | `sgd`, `adam`, `adamw` |
-| Schedulers | `cosine_annealing`, `step_lr`, `exponential_lr` |
-| Samplers | `sgld`, `sglrw`, `sghmc` |
-| Likelihoods | `categorical`, `dirichlet` |
-| Losses | `cross_entropy`, `edl_log`, `edl_digamma`, `edl_mse` |
-| Priors | `diagonal_normal` over the weights, `gamma_strength` over the Dirichlet total concentration |
-| Datasets | `fashion_mnist`, `cifar10` |
-| Transforms | `to_tensor`, `normalize`, `random_crop`, `random_horizontal_flip`, `flatten` |
+## Features
 
-### Metrics
+- One training script for deterministic, sampled, and evidential models.
+- Likelihoods for single labels (categorical, Dirichlet) and for count vectors
+(multinomial, Dirichlet multinomial).
+- Function space prior on the Dirichlet total concentration, with a bias shift
+that starts a warm started model at the prior mode.
+- Bayesian model average (BMA) metrics over posterior samples, calibration
+metrics, and an analytical decomposition of predictive uncertainty.
+- Datasets Fashion-MNIST, CIFAR-10, and CIFAR-10H, downloaded on first use.
+- Hydra configuration with a plugin registry. A new model, loss, prior,
+sampler, metric, or dataset is one module and one yaml entry.
+- An experiment runner for seeds, warm starts, and resumable experiment sets.
+- Checkpoints every epoch, resumable runs, and Weights and Biases logging.
 
-Metrics are chosen per evaluation split by name. `src/metrics/` is the full list; the families are:
 
-| Family | Names |
-|---|---|
-| Softmax | `accuracy`, `loss`, `nll`, `brier_score`, `calibration_error` |
-| Dirichlet | `dirichlet_nll`, `dirichlet_digamma_nll`, `dirichlet_brier_score`, `dirichlet_expected_brier`, `dirichlet_calibration_error`, `dirichlet_strength`, `vacuity` |
-| Uncertainty decomposition | `analytical_dirichlet_{total,aleatoric,distributional}_uncertainty` |
-| Averaged over posterior samples | `bma_` counterparts of most of the above, plus `bma_[dirichlet_]{predictive_entropy,expected_entropy,mutual_information,predictive_variance}` |
-| Per-input arrays | `array_dump`, which collects per-input values instead of a scalar |
-
-## Configuration
-
-Hydra composes each experiment config from four defaults groups:
-
-```
-defaults:
-  - datasets: cifar10                 # configs/datasets/  — train/val/test loaders
-  - model: resnet20                   # configs/model/     — architecture and output layer
-  - training: standard                # configs/training/  — optimizer or sampler, loss, priors, W&B
-  - evaluation: standard_cifar10      # configs/evaluation/— per-split intervals and metrics
-  - _self_
-```
-
-Training defines either `optimizer` or `sampler`, not both. LR schedulers apply only to optimizer-based training and are ignored, with a warning, for samplers.
-
-There is one experiment config per dataset × method, each carrying the protocol as its defaults — train on the train split, checkpoint on val, evaluate test only at the end — so an experiments yaml overrides only what it changes:
-
-| Method | Fashion-MNIST | CIFAR-10 |
-|---|---|---|
-| SGD softmax | `fashion_mnist_sgd` | `cifar10_sgd` |
-| EDL | `fashion_mnist_edl` | `cifar10_edl` |
-| Categorical BNN | `fashion_mnist_categorical_bnn_sgld` | `cifar10_categorical_bnn_sgld` |
-| eBNN (Dirichlet BNN) | `fashion_mnist_dirichlet_bnn_sgld` | `cifar10_dirichlet_bnn_sgld` |
-
-Each pairs with the matching evaluation preset (`standard_*`, `edl_*`, `bnn_*`, `dirichlet_bnn_*`). Evaluation intervals are `1`/`N` for every epoch or every N, `-1` for the final epoch only, `0` to disable.
-
-```bash
-python train.py --config-name cifar10_categorical_bnn_sgld training.sampler.params.temperature=0.01
-python train.py --config-name fashion_mnist_dirichlet_bnn_sgld evaluation.fashion_mnist_val.interval=5
-```
-
-## Repository structure
-
-```
-BNN-EDL/
-├── configs/
-│   ├── datasets/ model/ training/ evaluation/    # Defaults groups
-│   └── *.yaml                                    # Experiment configs (dataset x method)
-├── src/
-│   ├── models/ optimizers/ samplers/ losses/ likelihoods/
-│   ├── priors/ priors_fs/ schedulers/ metrics/ data/
-│   ├── training/          # Engines, evaluators, handlers, checkpointing
-│   ├── builders/          # Config -> component, via the registry
-│   ├── utils/
-│   └── registry.py
-├── tests/
-├── experiments_*.yaml     # Experiment lists for run_experiments.py
-├── train.py
-├── run_experiments.py
-└── outputs/               # One directory per run
-```
 
 ## Installation
 
-This project was developed and tested on **Python 3.10.19**. 
+The project was developed and tested with **Python 3.10.19**.
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/jpweideman/BNN-EDL.git
-cd BNN-EDL
+git clone https://github.com/jpweideman/Evidential-Bayesian-DL.git
+cd Evidential-Bayesian-DL
 ```
+
+
 
 ### 2. Install Poetry
 
@@ -102,13 +55,13 @@ curl -sSL https://install.python-poetry.org | python3 -
 wget -qO- https://install.python-poetry.org | python3 -
 ```
 
+
+
 ### 3. Ensure Poetry is on PATH
 
-If `poetry --version` fails with `command not found` after installation, add Poetry's bin directory to your shell `PATH`, then reload your shell configuration and run:
-
-```bash
-poetry --version
-```
+If `poetry --version` fails with `command not found`, add Poetry's bin
+directory to your shell `PATH`, reload your shell configuration, and run
+`poetry --version` again.
 
 ### 4. Install Python 3.10 with pyenv
 
@@ -120,65 +73,229 @@ pyenv local 3.10.19
 poetry env use "$(pyenv which python)"
 ```
 
-### 5. Install Dependencies
+
+
+### 5. Install the dependencies
 
 ```bash
 poetry install
 ```
 
-### 6. **Activate the virtual environment**:
+
+
+### 6. Activate the virtual environment
+
 ```bash
 source $(poetry env info --path)/bin/activate
 ```
 
-### 7. **Run training**:
-```bash
-# After activation, run commands normally
-python train.py --config-name fashion_mnist_sgd
-
-# Or use poetry run without activation
-poetry run python train.py --config-name fashion_mnist_sgd
-```
+You can also prefix every command with `poetry run` instead.
 
 ## Usage
 
-### Run outputs
 
-Each run writes one directory, `outputs/<run>/`:
 
-```
-.hydra/config.yaml     The composed config the run actually used
-best_model.pt          Best checkpoint on the checkpoint split, with its score
-last_checkpoint.pt     Written every epoch, for resuming
-samples/               Posterior snapshots (sampled runs)
-arrays/<split>.npz     Per-input arrays, for every split with an array_dump metric
-arrays/summary.json    Each split's final metrics, readable without W&B
-metrics.json           The W&B run summary
-```
+### Train a model
 
-W&B metric names are `<split>/<metric>`, so training and each evaluation split get their own section.
-
-### Resuming a run
-
-Checkpoints are written every epoch. Point a run at its own output directory to continue it:
+Every experiment config under `configs/` trains one model with one command.
+Hydra overrides change any value from the command line.
 
 ```bash
-python train.py --config-name cifar10_sgd hydra.run.dir=outputs/2026-01-01/12-00-00/
+python train.py --config-name fashion_mnist_sgd
+python train.py --config-name cifar10_dirichlet_bnn_sgld training.prior_fs.params.rate=0.26
+python train.py --config-name cifar10_categorical_bnn_sgld training.sampler.params.temperature=0.01
 ```
 
-A resumed run keeps the restored weights: `training.pretrained` is applied only on a fresh start.
+The experiment configs, one per dataset and method:
 
-### Running experiment sets
 
-`run_experiments.py` runs the entries of an experiments yaml in declaration order, once per seed, into `outputs/<entry>_s<seed>/`. Completed runs are recorded in `.<experiments file>_state.json`, so an interrupted set resumes where it stopped.
+| Method                 | Fashion-MNIST                        | CIFAR-10                       |
+| ---------------------- | ------------------------------------ | ------------------------------ |
+| Softmax network (SGD)  | `fashion_mnist_sgd`                  | `cifar10_sgd`                  |
+| EDL network            | `fashion_mnist_edl`                  | `cifar10_edl`                  |
+| Categorical BNN (SGLD) | `fashion_mnist_categorical_bnn_sgld` | `cifar10_categorical_bnn_sgld` |
+| Evidential BNN (SGLD)  | `fashion_mnist_dirichlet_bnn_sgld`   | `cifar10_dirichlet_bnn_sgld`   |
+
+
+For annotator counts on CIFAR-10H:
+
+
+| Method                              | CIFAR-10H                                 |
+| ----------------------------------- | ----------------------------------------- |
+| Multinomial network (SGD)           | `cifar10h_multinomial_sgd`                |
+| Dirichlet multinomial network (MAP) | `cifar10h_dirichlet_multinomial_map_sgd`  |
+| Multinomial BNN (SGLD)              | `cifar10h_multinomial_bnn_sgld`           |
+| Dirichlet multinomial eBNN (SGLD)   | `cifar10h_dirichlet_multinomial_bnn_sgld` |
+
+
+Each config trains on the train split, selects the checkpoint on the
+validation split, and evaluates the test split at the end.
+
+### Warm starts
+
+`training.pretrained` loads the weights of another run before training:
+
+```bash
+python train.py --config-name cifar10_categorical_bnn_sgld \
+    training.pretrained.enabled=true \
+    training.pretrained.path=outputs/my_sgd_run/best_model.pt
+```
+
+For a Dirichlet output layer under a `gamma_strength` prior,
+`training.pretrained.match_prior_mode=true` adds one constant to the output
+bias. The pretrained model then starts with its median total concentration at
+the prior mode, and its class predictions do not change.
+
+### Run experiment sets
+
+`run_experiments.py` runs the entries of an experiments yaml in order, once per
+seed, into `outputs/<entry>_s<seed>/`. `experiments_e1.yaml` and
+`experiments_e2.yaml` are examples.
 
 ```bash
 python run_experiments.py --file_name experiments_e1.yaml --runs 3
 python run_experiments.py --file_name experiments_e1.yaml --list
 ```
 
-`--only`, `--skip` and `--rerun` take entry names. An entry can declare `pretrained_from` to warm-start from another entry's best checkpoint, of the same seed, or of the next seed with `pretrained_from_next_seed`, which the runner defers to a second pass once every seed's source run exists.
+Completed runs are recorded in `.<experiments file>_state.json`, so an
+interrupted set continues where it stopped. `--only`, `--skip`, and `--rerun`
+take entry names. An entry can declare `pretrained_from` to warm start from
+another entry's best checkpoint of the same seed.
 
-### Warm starts
+### Resume a run
 
-`training.pretrained` loads another run's checkpoint before training. For a Dirichlet head under a `gamma_strength` prior, `training.pretrained.match_prior_mode=true` also adds one constant to the output bias, so the pretrained model's median total concentration starts at the prior mode without changing which class it predicts.
+`hydra.run.dir` sets the output directory of a run. Without it, Hydra writes
+to `outputs/<date>/<time>/`. `last_checkpoint.pt` is written there every
+epoch. To continue an interrupted run, start it again with the same config,
+the same overrides, and the same directory:
+
+```bash
+python train.py --config-name cifar10_sgd hydra.run.dir=outputs/my_run/
+```
+
+If the directory holds a `last_checkpoint.pt`, training restores the weights,
+the optimizer state, the random number generator state, the epoch, the
+posterior sample list, and the W&B run, and continues to
+`training.num_epochs`. `.hydra/config.yaml` in the run directory records the
+config and overrides of the original run. Pretrained weights and the bias
+shift are applied on a fresh start only.
+
+### Run outputs
+
+Each run writes one directory:
+
+```
+outputs/<run>/
+├── .hydra/config.yaml     The composed config the run used
+├── best_model.pt          Best checkpoint on the checkpoint split
+├── last_checkpoint.pt     Written every epoch, for resuming
+├── samples/               Posterior samples (sampled runs)
+├── arrays/<split>.npz     Per input arrays, for every split with an array_dump metric
+├── arrays/summary.json    Final metrics of every evaluation split
+└── metrics.json           The Weights and Biases run summary
+```
+
+
+
+### Logging
+
+Weights and Biases logging is on by default. Metric names are
+`<split>/<metric>`. Set the project with `training.wandb.project=<name>`, or
+turn logging off with `training.wandb.enabled=false`. The per split metrics
+are also written to `arrays/summary.json`, so no W&B account is needed to
+read the results.
+
+## Configuration
+
+The framework is config driven. A yaml file describes the whole run, and the
+code contains no experiment specific logic. Hydra composes every experiment
+config from four groups:
+
+```yaml
+defaults:
+  - datasets: cifar10             # configs/datasets/    data loaders per split
+  - model: resnet20               # configs/model/       architecture and output layer
+  - training: standard            # configs/training/    optimizer or sampler, loss, priors, logging
+  - evaluation: standard_cifar10  # configs/evaluation/  metrics and interval per split
+  - _self_
+```
+
+Every component in a config has the same shape, a `name` and optional
+`params`:
+
+```yaml
+training:
+  sampler:
+    name: sgld
+    params:
+      lr: 0.0001
+      temperature: 1.0
+  prior_fs:
+    name: gamma_strength
+    params:
+      concentration: 27
+      rate: 0.26
+```
+
+At start up, a builder in `src/builders/` reads each block, looks the `name`
+up in the registry in `src/registry.py`, and constructs the component with
+`params`. Any value can be changed from the command line without editing a
+file, for example `training.sampler.params.lr=0.001`.
+
+A training config defines either `optimizer` or `sampler`, not both. Learning
+rate schedulers apply to optimizers only. An evaluation interval of `N` runs
+the split every N epochs, `-1` runs it after the final epoch only, and `0`
+disables it.
+
+## Extending the framework
+
+There is one registry for each component type: models, output layers, losses,
+likelihoods, priors, function space priors, metrics, optimizers, schedulers,
+samplers, datasets, and transforms. To add a component you need no change to
+the training code. Two steps:
+
+1. Put a module in the matching `src/` folder and register the class under a
+  name. The folder imports every module on start up, so the registration
+   runs by itself.
+2. Name it in a yaml, with its parameters under `params`.
+  ```yaml
+   training:
+     prior_fs:
+       name: my_prior
+       params:
+         scale: 2.0
+  ```
+
+The registered names are the single source of truth, and each `src/` folder
+holds one module per component, so the folder listing shows what exists.
+
+## Repository structure
+
+```
+Evidential-Bayesian-DL/
+├── configs/
+│   ├── datasets/ model/ training/ evaluation/   Config groups
+│   └── *.yaml                                   Experiment configs (dataset x method)
+├── src/
+│   ├── models/ losses/ likelihoods/ priors/ priors_fs/
+│   ├── samplers/ optimizers/ schedulers/ metrics/ data/
+│   ├── training/                                Engines, evaluators, handlers, checkpoints
+│   ├── builders/                                Config to component, through the registry
+│   └── registry.py
+├── experiments_*.yaml                           Experiment sets for run_experiments.py
+├── train.py
+└── run_experiments.py
+```
+
+
+
+## Acknowledgements
+
+The framework builds on [PyTorch](https://pytorch.org/) and
+[PyTorch Ignite](https://pytorch-ignite.ai/) for training,
+[posteriors](https://github.com/normal-computing/posteriors) for the SGMCMC
+samplers, [edl-pytorch](https://github.com/teddykoker/evidential-learning-pytorch)
+for the evidential losses, [torchmetrics](https://lightning.ai/docs/torchmetrics/)
+for the calibration metrics, [Hydra](https://hydra.cc/) for configuration,
+[Weights and Biases](https://wandb.ai/) for logging, and
+[Poetry](https://python-poetry.org/) for dependency management.

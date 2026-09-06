@@ -1,10 +1,7 @@
-# All runs of the thesis experiments chapter.
 # Run: python run_experiments.py --file_name experiments_e1.yaml --runs 3
 # The runner loops seeds (s0, s1, s2) and resolves pretrained_from per seed.
-# Gamma prior defaults to sd = 20% of the mode: concentration 27,
-# rate = 26 / mode. The _sd arms override both parameters.
 
-wandb_project: ebnn-thesis
+wandb_project: ebnn
 seed: 0
 
 experiments:

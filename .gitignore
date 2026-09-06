@@ -1,14 +1,11 @@
 __pycache__
 /data/
 outputs/
-results/
 .venv/
 .DS_Store
-.python-version
+
 
 # experiment runner state, one file per experiments yaml
 .*_state.json
 
-# development scripts
-junk/
 
