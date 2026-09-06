@@ -11,11 +11,7 @@ sampled with SGMCMC under a Gamma prior on the total concentration. The model
 combines the epistemic uncertainty of a BNN with the distributional
 uncertainty of EDL.
 
-The framework supports single label targets and annotator count targets. For
-counts it provides multinomial and Dirichlet multinomial likelihoods and the
-CIFAR-10H dataset. Every evaluation can decompose the predictive uncertainty
-into aleatoric, distributional, and epistemic terms and dump per input arrays
-for offline analysis.
+The framework supports single label targets and annotator count targets.
 
 
 ## Installation
