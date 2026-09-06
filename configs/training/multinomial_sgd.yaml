@@ -39,6 +39,6 @@ early_stopping:
 
 wandb:
   enabled: true
-  project: bnn-edl
+  project: evidential-bayesian-dl
   name: null
   log_interval: 20
